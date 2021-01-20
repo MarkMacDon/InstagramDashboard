@@ -7,8 +7,11 @@ class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(default='default.jpg', upload_to='profile_pics')
 
-    def save(self):
-        super().save()
+    def __str__(self):
+        return f'{self.user.username} Profile'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
         
         #*Image resize using PIL. There are other options
         img = Image.open(self.image.path)
@@ -17,6 +20,4 @@ class Profile(models.Model):
             img.thumbnail(output_size)
             img.save(self.image.path)
 
-    def __str__(self):
-        return f'{self.user.username} Profile'
         
