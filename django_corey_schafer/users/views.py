@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .forms import UserRegisterForm, UserUpdateForm, ProfileUpdateForm
+from django.contrib.auth.views import LoginView
+from .forms import AuthForm, UserRegisterForm, UserUpdateForm, ProfileUpdateForm
 
 
 def register(request):
@@ -19,7 +20,6 @@ def register(request):
         return render(request, 'users/register.html', {'form': form})
 
 
-#! Decorators (@) add functionality to functions. This one does what it says.  Different in class based view
 @login_required
 def profile(request):
     if request.method == 'POST':
@@ -39,3 +39,14 @@ def profile(request):
         'u_form': u_form, 'p_form': p_form,
         }
     return render(request, 'users/profile.html', context)
+
+#TODO add support for loggin in as guest
+class CustomLoginView(LoginView):
+    form_class=AuthForm
+
+    def get_form_kwargs(self):
+        kwargs = super(CustomLoginView, self).get_form_kwargs()
+        kwargs['initial'] = {'username':'guest'}
+        print(kwargs)
+        return kwargs
+

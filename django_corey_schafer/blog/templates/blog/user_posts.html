@@ -1,21 +1,24 @@
 {% extends 'blog/base.html' %}
+{% load static %}
 
 {% block content %}
+<link rel="stylesheet" type="text/css" href="{% static 'blog/home.css' %}">
+
     <h1 class="mb-3">Posts by {{ view.kwargs.username }}: {{ page_obj.paginator.count }}</h1>
+    <div class="grid-container">
     {% for post in posts %}
-        <article class="media content-section">
-            <img class="rounded-circle article-img" src="{{post.author.profile.image.url}}">
-            <div class="media-body">
-                <div class="article-metadata">
-                <a class="mr-2" href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a>
-                <small class="text-muted">{{ post.date_added|date:"F d, Y" }}</small>
+        <div class="grid-item">
+            <div class="article-metadata">
+                <div class="column">
+                    <div class="row"><img class="rounded-circle article-img" src="{{post.author.profile.image.url}}"><a class="mr-2"href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a></div>
+                    <div class="row"><small class="text-muted">{{ post.date_added|date:"F d, Y" }}</small></div>
+                    <div class="row"><a href="{% url 'post-detail' post.id %}"><img class="img" src="{{post.small_image.url}}" ></a></div>
+                    <div class="row">{{ post.content|make_list|slice:content_length|join:'' }}{% if post.content|length > content_length_int %}...{% endif %}</div>
                 </div>
-                <h2><a class="article-title" href="{% url 'post-detail' post.pk %}">{{ post.title }}</a></h2>
-                <img class="img-thumbnail" src="{{post.small_image.url}}">
-                <p class="article-content">{{ post.content }}</p>
             </div>
-        </article>
+        </div>
     {% endfor %}
+</div>
     <div align="center">
     {% if is_paginated %}
         {% if page_obj.has_previous %}

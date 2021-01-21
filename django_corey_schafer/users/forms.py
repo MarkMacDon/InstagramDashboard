@@ -2,6 +2,8 @@ from .models import Profile
 from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.forms.widgets import PasswordInput, EmailInput
 
 class UserRegisterForm(UserCreationForm):
     email = forms.EmailField()
@@ -22,4 +24,12 @@ class UserUpdateForm(forms.ModelForm):
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ['image']
+        fields = ['handle', 'image']
+
+class AuthForm(AuthenticationForm):
+
+    class Meta:
+        widgets = {
+            'username':forms.EmailInput(attrs={'class':'form-control form-control-sm'}),
+            'password':forms.PasswordInput(attrs={'class':'form-control form-control-sm'}),
+        }

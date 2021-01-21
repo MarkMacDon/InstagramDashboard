@@ -1,23 +1,19 @@
 from PIL import Image
-from django.db import models
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django_corey_schafer import settings
 from .models import Post
-from django.core.files.base import ContentFile
-from django.core.files import File
-from django.core.files.temp import NamedTemporaryFile
+
 from django.core.files.uploadedfile import SimpleUploadedFile
-import urllib.request
-from urllib.parse import urlparse
-from urllib.parse import urlparse
+
+
 
 
 #! Creating Works. Updating creates a recursion error when using save 
 #! and does not save a new image when it updates
 #* solved Recursion error with bool 'updated'.
-#TODO Make small_image square
 #TODO Get small_image to save and load from folder
+#TODO Find source of duplicate data and delete old pics on post update
 
 @receiver(post_save, sender=Post)
 def save_small_image(sender, created, instance, **kwargs):
@@ -37,10 +33,36 @@ def save_small_image(sender, created, instance, **kwargs):
         a = SimpleUploadedFile(basename, instance.image.read())
         instance.save()
         Post.objects.filter(pk=instance.pk).update(small_image=a, updated=True)
-        output_size = (300, 300)
+        # img = Image.open(instance.image.path)
+        # img.thumbnail(output_size)
+        # img.save(instance.small_image.path)
+        # instance.save()
         img = Image.open(instance.image.path)
-        img.thumbnail(output_size)
-        img.save(instance.small_image.path)
+        width = img.width
+        height = img.height
+        top = 0
+        bottom = height
+        right = width
+        left = 0
+        if width > height:
+            dif = (width - height) / 2 
+            top = 0
+            bottom = height
+            right = width - dif
+            left = dif
+        elif width < height:
+            dif = (height - width)/2
+            top = dif
+            bottom = height - dif
+            height = width
+            left = 0
+            
+        crop_rectangle = (left, top, right, bottom)
+        cropped_im = img.crop(crop_rectangle)
+        output_size = (350, 350)
+        cropped_im.thumbnail(output_size)   
+        cropped_im.save(instance.small_image.path)
         instance.save()
+
 
     Post.objects.filter(pk=instance.pk).update(updated=False)

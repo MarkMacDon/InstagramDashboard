@@ -17,5 +17,15 @@
                 Need an account? <a href="{% url 'register' %}">Sign Up Now</a>
             <small>
         </div>
+        <div>
+            <small class="text-muted">
+            <form method="POST">
+            {% csrf_token %}
+                <input type="hidden" name="name" value="guest">
+                <input type="hidden" name="password" value="guestpassword1">
+                <button type="submit" name="guest" value="true">Continue as Guest</button>
+            </form>  
+            <small>
+        </div>
     </div>
 {% endblock content %}

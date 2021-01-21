@@ -3,9 +3,6 @@ from django.contrib.auth.models import User
 from django.dispatch import receiver
 from .models import Profile
 
-
-#! receiver listens for post_save from the sender, which in this case is User
-#! the arguments in the create_profile method come from post_save
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     if created:
