@@ -1,0 +1,185 @@
+from celery_example.tasks import send_email_task
+from .send_email import send_email
+from datetime import datetime, timedelta, timezone
+from .image_resize import image_resize
+from PIL import Image
+from .forms import ScheduledDateForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django import forms
+from django.forms.models import modelform_factory
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib.auth.models import User
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.contrib import messages
+from django.core.files.base import ContentFile
+from io import BytesIO
+from .models import Post
+import pytz
+
+def home(request):
+    return render(request, 'dashboard/home.html')
+
+def about(request):
+    return render(request, 'dashboard/about.html', {'title':'About'})
+
+#TODO optional: infinite scroll
+class PostListView(ListView):
+    model = Post
+    template_name = 'dashboard/home.html'
+    context_object_name = 'posts'
+    ordering = ['-date_added']
+    paginate_by = 9
+    
+    def get_context_data(self, **kwargs):
+        content_length_int = 50
+        content_length = ":"+str(content_length_int)
+        kwargs['content_length'] = content_length
+        kwargs['content_length_int'] = content_length_int
+        print(kwargs)
+        return super().get_context_data(**kwargs)
+
+    
+
+class UserPostListView(ListView):
+    model = Post
+    template_name = 'dashboard/user_posts.html'
+    context_object_name = 'posts'
+    paginate_by = 9
+
+    def get_queryset(self):
+        user = get_object_or_404(User, username=self.kwargs.get('username'))
+        return Post.objects.filter(author=user).order_by('-date_added')
+
+    def get_context_data(self, **kwargs):
+        content_length_int = 50
+        content_length = ":"+str(content_length_int)
+        kwargs['content_length'] = content_length
+        kwargs['content_length_int'] = content_length_int
+        print(kwargs)
+        return super().get_context_data(**kwargs)
+
+class PostDetailView(DetailView):
+    model = Post
+
+#TODO Make sure  form does not wipe data if permission is not given
+class PostCreateView(LoginRequiredMixin, CreateView):
+    model = Post
+    form_class = modelform_factory(Post, fields=['title', 'handles', 'image', 'content', 'hashtags', 'permission'],
+        widgets={'handles': forms.Textarea(attrs={'rows':1, 'cols':15}),
+        'hashtags':forms.Textarea(attrs={'rows':2, 'cols':15})})
+    
+    def get_form_kwargs(self):
+        kwargs = super(PostCreateView, self).get_form_kwargs()
+        kwargs['initial'] = {'handles':self.request.user.profile.handle,
+                            'permission':False}
+        return kwargs
+    
+    def form_valid(self, form):
+        if form.instance.permission != True:
+            messages.error(self.request, 'No permission given')
+            return redirect('post-create')
+        else:
+            form.instance.author = self.request.user
+            messages.success(self.request, 'Post Created')
+            
+            image_copy = Image.open(form.instance.image)
+            image_copy = image_resize(image_copy)
+
+            image_copy.thumbnail((350,350), Image.ANTIALIAS)
+            thumb_io = BytesIO()
+            image_copy.save(thumb_io, image_copy.format, quality=60)
+            form.instance.small_image.save(f'small_{form.instance.image}', ContentFile(thumb_io.getvalue()), save=False)
+            form.instance.save()
+
+            return super().form_valid(form)
+    
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+
+
+#TODO Make sure  form does not wipe data if permission is not given
+class PostUpdateView(UserPassesTestMixin, LoginRequiredMixin, UpdateView):
+    model = Post
+    form_class = modelform_factory(Post, fields=['title', 'handles', 'image', 'content', 'hashtags', 'permission'],
+        widgets={'handles': forms.Textarea(attrs={'rows':1, 'cols':15}),
+        'hashtags':forms.Textarea(attrs={'rows':2, 'cols':15})})
+    
+    
+    def get_form_kwargs(self):
+        kwargs = super(PostUpdateView, self).get_form_kwargs()
+        kwargs['initial'] = {'handles':self.request.user.profile.handle,
+                             'permission':False}
+        return kwargs
+
+    def form_valid(self, form):
+        if form.instance.permission != True:
+            pk = form.instance.pk
+            messages.error(self.request, 'No permission given')
+            return redirect('post-update', pk)
+        else:
+            form.instance.author = self.request.user
+            messages.success(self.request, 'Post Updated')    
+            return super().form_valid(form)
+
+
+    def test_func(self):
+        post = self.get_object()
+        if post.author == self.request.user or self.request.user.is_superuser:
+            return True
+        else:
+            return False
+
+#TODO Delete from database
+class PostDeleteView(UserPassesTestMixin, LoginRequiredMixin, DeleteView):
+    model = Post
+    success_url = '/'
+
+    def test_func(self):
+        post = self.get_object()
+        if post.author == self.request.user or self.request.user.is_superuser:
+            return True
+        else:
+            return False
+
+#TODO Fix sidebar on template
+#TODO Make timezone aware of user location
+class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
+    model = Post
+    template_name = 'dashboard/schedule_posts.html'
+    context_object_name = 'posts'
+    paginate_by = 9
+
+    def get_queryset(self):
+        return Post.objects.all().order_by('-scheduled_date')
+    
+    def test_func(self):
+        if self.request.user.is_superuser:
+            return True
+        else:
+            return False
+    
+    def get_context_data(self, **kwargs):
+        form = ScheduledDateForm()
+        kwargs['form'] = form
+        return super().get_context_data(**kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        post_id = request.POST['post']
+        post = Post.objects.filter(id=post_id).first()
+        self.form = ScheduledDateForm(request.POST, instance=post)
+        form = self.form
+        post = self.form.instance
+
+        if form.is_valid():
+            form.save()
+            aware_time = pytz.utc.localize(datetime.now())
+            delay = form.instance.scheduled_date - aware_time
+            send_email_task.apply_async((post.title, post.handles, post.content), countdown=10)
+            messages.success(
+                request, f'Your post has been scheduled.')
+            return redirect('post-schedule')
+        else:
+            kwargs['form']=form
+            messages.warning(request,'Selected date must not be in the past')
+            return redirect('post-schedule')
+        
