@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
+{% load render_bundle from webpack_loader %}
 {% block content %}
 
 <!DOCTYPE html>
@@ -28,6 +29,8 @@
   <link rel="mask-icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/safari-pinned-tab.svg"
     color="#563d7c" />
   <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon.ico" />
+
+  <link rel="stylesheet" type="text/css" href="{% static 'dashboard/homepage.css' %}">
 
   <meta name="msapplication-config" content="/docs/4.4/assets/img/favicons/browserconfig.xml" />
   <meta name="theme-color" content="#563d7c" />
@@ -150,4 +153,7 @@
   </div>
   </div>
 
+
+  <div id="react"> {% render_bundle 'main' %}
+  </div>
   {% endblock content %}
