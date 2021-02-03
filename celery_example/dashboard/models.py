@@ -1,3 +1,5 @@
+from .image_resize import image_resize
+from PIL import Image
 from django.db import models
 
 # Create your models here.
@@ -8,18 +10,19 @@ from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from io import BytesIO
+from django.core.files.base import ContentFile
 
-# TODO determine the CSV format for uploading posts
+# TODO Look in to deploying static files. Going from Dev to Production
 # TODO MKV, MP4
 # TODO Minimum duration: 3 seconds Maximum duration: 10 minutes Minimum dimentions: 640x640 pixels\
 # TODO Who, where, when, any info, permissions
 # TODO Make images all visible
 # TODO Fix handles regex for multiple handles
-# TODO Approved to post variable and page
-# TODO posted reminder. Google calendar? other?
+# TODO set permissions and determine overall layout
 
 
-#TODO LOOK AT THIS!!!!!!!!!!!!************
+# TODO LOOK AT THIS!!!!!!!!!!!!************
 image_storage = FileSystemStorage(
     # Physical file location ROOT
     location=u'{0}/uploads/'.format(settings.MEDIA_ROOT),
@@ -29,18 +32,32 @@ image_storage = FileSystemStorage(
 
 
 def image_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/my_sell/picture/<filename>
     return u'images/{0}'.format(filename)
 
+
 def small_image_directory_path(instance, filename):
-    # file will be uploaded to MEDIA_ROOT/my_sell/picture/<filename>
     return u'small_images/{0}'.format(filename)
 
+
 class Post(models.Model):
+
+    POST_STATUS_UNSCHEDULED = 'unscheduled'
+    POST_STATUS_STAGED = 'staged'
+    POST_STATUS_SCHEDULED = 'scheduled'
+    POST_STATUS_COMPLETE = 'complete'
+    POST_STATUSES = (
+        (POST_STATUS_UNSCHEDULED, 'Unscheduled'),
+        (POST_STATUS_STAGED, 'Staged'),
+        (POST_STATUS_SCHEDULED, 'Scheduled'),
+        (POST_STATUS_COMPLETE, 'Complete')
+    )
+
     title = models.CharField(("Title"), max_length=50)
-    image = models.ImageField(default='default.jpg', verbose_name='Image: JPEG, GIF, or PNG', upload_to=image_directory_path, storage=image_storage)
-    small_image = models.FileField(default='default.jpg', upload_to=small_image_directory_path, storage=image_storage)
-    content = models.TextField(max_length=2200)
+    image = models.ImageField(default='default.jpg', verbose_name='Image: JPEG, GIF, or PNG',
+                              upload_to=image_directory_path, storage=image_storage)
+    small_image = models.FileField(
+        default='default.jpg', upload_to=small_image_directory_path, storage=image_storage)
+    content = models.TextField('Tell us about this photo', max_length=2200)
     date_added = models.DateTimeField(default=timezone.now)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     scheduled_date = models.DateTimeField(default=timezone.now)
@@ -50,20 +67,25 @@ class Post(models.Model):
                                     regex=r'^#\w+(?: #\w+)*$',
                                     message='Hashtag format invalid',
                                     code='invalid_hashtags')]
-                                    )
-    handles = models.TextField(default=User, verbose_name='Handles',
-                              validators=[RegexValidator(
-                                  regex=r'^([a-zA-Z0-9_][a-zA-Z0-9_.])*$',
-                                  message='Handle(s) format invalid',
-                                  code='invalid_hashtags')]
-                                  )
-    permission = models.BooleanField(default=False, verbose_name='By checking this box you are giving us permission you use this content')
+                                )
+    handles = models.TextField(default=User, verbose_name='Handles')
+    permission = models.BooleanField(
+        default=False, verbose_name='By checking this box you are giving us permission to use this content')
+    status = models.CharField(
+        max_length=20, choices=POST_STATUSES, default=POST_STATUS_UNSCHEDULED)
 
     def __str__(self):
         return self.title
 
-    def save(self, **kwargs):
-        super().save(**kwargs)
+    def save(self, *args, **kwargs):
+        image_copy = Image.open(self.image)
+        image_copy = image_resize(image_copy)
+        image_copy.thumbnail((350, 350), Image.ANTIALIAS)
+        thumb_io = BytesIO()
+        image_copy.save(thumb_io, image_copy.format, quality=60)
+        self.small_image.save(
+            f'small_{self.image}', ContentFile(thumb_io.getvalue()), save=False)
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self):
         return reverse('post-detail', kwargs={'pk': self.pk})

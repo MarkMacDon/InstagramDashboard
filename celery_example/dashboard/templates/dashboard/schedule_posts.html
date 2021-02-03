@@ -1,50 +1,148 @@
 {% extends 'dashboard/base.html' %}
-
+{% load static %}
 {% block content %}
-    {% for post in posts %}
-        <article class="media content-section">
-            <img class="rounded-circle article-img" src="{{post.author.profile.image.url}}">
-            <div class="media-body">
-                <div class="article-metadata">
-                <a class="mr-2" href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a>
-                <small class="text-muted">{{ post.date_added|date:"F d, Y" }}</small>
-                </div>
-                <h2>
-                    <div>
-                        <img class="article-img" src="{{ post.image.url }}">
-                        <a class="article-title" href="{% url 'post-detail' post.pk %}">{{ post.title }}</a>
-                    </div>
-                    <small class="text-muted">{{ post.scheduled_date }}</small>
-                </h2>
-                <form method="POST">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button class="btn btn-outline-info" type="submit" name="post" value="{{ post.id }}" >Schedule Post</button>
-                </form>
-                <p class="article-content">{{ post.content }}</p>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+
+    <title>Bootstrap</title>
+
+    <link rel="canonical" href="https://getbootstrap.com/docs/4.4/examples/album/" />
+
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
+
+    <!-- Favicons -->
+    <link rel="apple-touch-icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/apple-touch-icon.png"
+        sizes="180x180" />
+    <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon-32x32.png" sizes="32x32"
+        type="image/png" />
+    <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon-16x16.png" sizes="16x16"
+        type="image/png" />
+    <link rel="manifest" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/manifest.json" />
+    <link rel="mask-icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/safari-pinned-tab.svg"
+        color="#563d7c" />
+    <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="{% static 'dashboard/homepage.css' %}">
+
+    <meta name="msapplication-config" content="/docs/4.4/assets/img/favicons/browserconfig.xml" />
+    <meta name="theme-color" content="#563d7c" />
+
+
+<body cz-shortcut-listen="true">
+
+    <main role="main">
+        <section class="jumbotron text-center">
+            <div class="container">
+                <h1>Boulder Denim </h1>
+                <h3>Affiliate Dashboard</h3>
+                <p class="lead text-muted">
+                    Ultra-stretch, stain resistant premium denim. Inspired by necessity, created by adventurists.
+                </p>
+                <p>
+                    <a href="{% url 'post-create' %}" class="btn btn-secondary my-2">Submit a Post</a>
+                    {% if user.is_superuser %}<a href="{% url 'post-stage' %}"
+                        class="btn btn-secondary my-2">{% if user.is_superuser %}Manage Content{% endif %} </a>
+                    {% endif %}
+                </p>
             </div>
-        </article>
-    {% endfor %}
-    <div align="center">
-    {% if is_paginated %}
+        </section>
+        <div class="container">
+            <div class="row">
+
+
+            </div>
+        </div>
+
+
+        </div>
+        <section>
+            <div class="container d-flex">
+                <div class="row">
+                    <form action="" method="" class="d-flex">
+                        <div class="p-2 bd-highlight"></div>
+                        <a href="{% url 'post-stage' %}" type="button" name="status" class={% if  request.get_full_path  == '/stage/'%}"btn
+                            btn-dark p-2"{% else %}"btn btn-outline-dark p-2"{% endif %} value=""
+                            id="post-{{ value }}">Select Posts</a>
+                        <div class="p-2 bd-highlight"></div>
+                        <a href="{% url 'post-schedule' %}" type="button" name="status" class={% if  request.get_full_path  == '/schedule/'%}"btn
+                            btn-dark p-2"{% else %}"btn btn-outline-dark p-2"{% endif %} value="staged"
+                            id="post-{{ value }}">Schedule Posts</a>
+                        <div class="p-2 bd-highlight"></div>
+                        <a href="{% url 'post-scheduled' %}" type="button" name="status" class={% if  request.get_full_path  == '/complete/'%}"btn
+                            btn-dark p-2"{% else %}"btn btn-outline-dark p-2"{% endif %} value="scheduled"
+                            id="post-{{ value }}">Completed Posts</a>
+                        <div class="p-2 bd-highlight"></div>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <div class="album py-5 bg-light">
+            <div class="container">
+                <div class="row">
+                    {% for post in posts  %}
+                    <div class="col-md-4">
+                        <div class="card mb-8 shadow-sm">
+
+                            <a href="{% url 'post-detail' post.id %}">
+                                <img class="img" src="{{post.small_image.url}}">
+                            </a>
+
+                            <div class="card-body">
+                                <p class="card-text">
+                                    <img class="rounded-circle article-img" src="{{post.author.profile.image.url}}">
+
+                                    {{post.title}}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group">
+                                        <form method="POST">
+                                            {% csrf_token %}
+                                                {{ form.as_p }}
+                                            <button type="button submit" class="btn btn-sm btn-outline-secondary" type="submit"
+                                                name="post" value="{{ post.id }}">Select
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <small> {{ post.status|title }} </small>
+                                    <a href="{% url 'user-posts' post.author %}">
+                                        <small class="text-muted">{{ post.author }}</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+
+
+
+    </main>
+    <div class="container d-flex" align="center">
+        <div class="position-absolute top-100 start-50 translate-middle"></div>
+        {% if is_paginated %}
         {% if page_obj.has_previous %}
-            <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
-            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
         {% endif %}
         {% for num in page_obj.paginator.page_range %}
-            {% if page_obj.number == num %}
-                <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
-            {% endif %}
+        {% if page_obj.number == num %}
+        <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+        {% endif %}
         {% endfor %}
         {% if page_obj.has_next %}
-            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
-            <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
+        <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
         {% endif %}
-    {% endif %}
-  </div>
-</div>
+        {% endif %}
+    </div>
+    </div>
 
-{% endblock content %}
-
+    {% endblock content %}

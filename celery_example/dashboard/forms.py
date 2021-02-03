@@ -3,9 +3,9 @@ from .models import Post
 from django import forms
 import datetime
 
+
 class DateUpdateForm(forms.DateTimeInput):
     input_type = 'datetime-local'
-
 
 
 class ScheduledDateForm(forms.ModelForm):
@@ -13,7 +13,7 @@ class ScheduledDateForm(forms.ModelForm):
         model = Post
         fields = ['scheduled_date']
         widgets = {
-            'scheduled_date':DateUpdateForm()
+            'scheduled_date': DateUpdateForm(attrs={'class': 'datetimepicker'})
         }
 
     def clean_scheduled_date(self):

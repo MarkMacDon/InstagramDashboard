@@ -1,29 +1,135 @@
 {% extends 'dashboard/base.html' %}
-
 {% load static %}
-
-
 {% block content %}
-<link rel="stylesheet" type="text/css" href="{% static 'dashboard/home.css' %}">
 
-<div class="grid-container">
-    {% for post in posts %}
-    <div class="grid-item">
-        <div class="article-metadata">
-            <div class="column">
-                <div class="row"><img class="rounded-circle article-img" src="{{post.author.profile.image.url}}"><a class="mr-2"href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a></div>
-                <div class="row"><small class="text-muted">Uploaded: {{ post.date_added|date:"F d, Y" }}</small></div>
-                <div class="row"><a href="{% url 'post-detail' post.id %}"><img class="img" src="{{post.small_image.url}}" ></a></div>
-                {% comment %} <div class="row">{{ post.content|make_list|slice:content_length|join:'' }}{% if post.content|length > content_length_int %}...{% endif %}</div> {% endcomment %}
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+
+  <title>Bootstrap</title>
+
+  <link rel="canonical" href="https://getbootstrap.com/docs/4.4/examples/album/" />
+
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous" />
+
+  <!-- Favicons -->
+  <link rel="apple-touch-icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/apple-touch-icon.png"
+    sizes="180x180" />
+  <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon-32x32.png" sizes="32x32"
+    type="image/png" />
+  <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon-16x16.png" sizes="16x16"
+    type="image/png" />
+  <link rel="manifest" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/manifest.json" />
+  <link rel="mask-icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/safari-pinned-tab.svg"
+    color="#563d7c" />
+  <link rel="icon" href="https://getbootstrap.com/docs/4.4/assets/img/favicons/favicon.ico" />
+
+  <meta name="msapplication-config" content="/docs/4.4/assets/img/favicons/browserconfig.xml" />
+  <meta name="theme-color" content="#563d7c" />
+
+
+<body cz-shortcut-listen="true">
+
+  <main role="main">
+    <section class="jumbotron text-center">
+      <div class="container">
+        <h1>Boulder Denim </h1>
+        <h3>Affiliate Dashboard</h3>
+        <p class="lead text-muted">
+          Ultra-stretch, stain resistant premium denim. Inspired by necessity, created by adventurists.
+        </p>
+        <p>
+          <a href="{% url 'post-create' %}" class="btn btn-secondary my-2">Submit a Post</a>
+          {% if user.is_superuser %}<a href="{% url 'post-stage' %}"
+            class="btn btn-secondary my-2">{% if user.is_superuser %}Manage Content{% endif %} </a>
+          {% endif %}
+        </p>
+      </div>
+    </section>
+    <div class="container">
+      <div class="row">
+
+
+      </div>
     </div>
-    {% endfor %}
-</div>
+
+
+    </div>
+
+    {% if user.is_superuser %}
+    <section>
+      <div class="container d-flex">
+        <div class="row">
+          <form action="" method="" class="d-flex">
+            <div class="p-2 bd-highlight"></div>
+            <button type="button submit" name="status" class="btn btn-outline-dark p-2" value=""
+              id="post-{{ value }}">All</button>
+            <div class="p-2 bd-highlight"></div>
+            <button type="button submit" name="status" class="btn btn-outline-dark p-2" value="staged"
+              id="post-{{ value }}">Selected</button>
+            <div class="p-2 bd-highlight"></div>
+            <button type="button submit" name="status" class="btn btn-outline-dark p-2" value="scheduled"
+              id="post-{{ value }}">Scheduled</button>
+            <div class="p-2 bd-highlight"></div>
+            <button type="button submit" name="status" class="btn btn-outline-dark p-2" value="complete"
+              id="post-{{ value }}">Completed</button>
+          </form>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+    <div class="album py-5 bg-light">
+      <div class="container">
+        <div class="row">
+          {% for post in posts  %}
+          <div class="col-md-4">
+            <div class="card mb-8 shadow-sm">
+
+              <a href="{% url 'post-detail' post.id %}">
+                <img class="img" src="{{post.small_image.url}}">
+              </a>
+
+              <div class="card-body">
+                <p class="card-text">
+                  <img class="rounded-circle article-img" src="{{post.author.profile.image.url}}">
+
+                  {{post.title}}
+                </p>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="btn-group">
+                    <a href="{% url "post-detail" post.id %}" type="button" class="btn btn-sm btn-outline-secondary">
+                      View
+                    </a>
+                    {% if user.is_superuser %}
+                    <button type="button" class="btn btn-sm btn-outline-secondary">
+                      Edit
+                    </button>
+                    {% endif %}
+                  </div>
+                  {% if user.is_superuser %}
+
+                  <small> {{ post.status|title }} </small>
+                  {% endif %}
+                  <a href="{% url 'user-posts' post.author %}">
+                    <small class="text-muted">{{ post.author }}</small>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
 
 
 
-<div align="center">
+
+  </main>
+  <div class="container d-flex" align="center">
+    <div class="position-absolute top-100 start-50 translate-middle"></div>
     {% if is_paginated %}
     {% if page_obj.has_previous %}
     <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
@@ -41,5 +147,7 @@
     <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
     {% endif %}
     {% endif %}
-</div>
-{% endblock content %}
+  </div>
+  </div>
+
+  {% endblock content %}

@@ -1,0 +1,93 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="{% static 'dashboard/home.css' %}">
+
+<div class="grid-container">
+    {% if posts %}
+    {% for post in posts %}
+    <div class="grid-item">
+        <div class="article-metadata">
+            <div class="column">
+                <div class="row image-header">
+                    <div class="align-items-stretch">
+                        <img class="rounded-circle article-img" src="{{post.author.profile.image.url}}">
+                        <a class="name-text" href="{% url 'user-posts' post.author.username %}">{{ post.author }}</a>
+                        <small class="text-muted upload-text">Uploaded: {{ post.date_added|date:"F d, Y" }}</small>
+                        {% if post.status == 'unscheduled' %}
+                        <small class="status-indicator"> Unscheduled</small>
+                        {% elif post.status  == 'staged' %}
+                        <small class="status-indicator">Staged</small>
+                        {% elif post.status == 'scheduled'%}
+                        <small class="status-indicator">Scheduled</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <a href="{% url 'post-detail' post.id %}">
+                    <img class="img" src="{{post.small_image.url}}">
+                </a>
+
+            </div>
+            {% if post.status == 'unscheduled' %}
+            {% elif post.status == 'staged' %}
+            {% elif post.status == 'scheduled' %}<small
+                class=''>{% if post.scheduled_date > today %}{{ post.scheduled_date }}{% else %}Complete{% endif %}<small />
+                {% endif %}
+                <form method="POST">
+                    {% csrf_token %}
+                    {% if post.status == 'staged' %}
+                    {% for field in form %}
+                    {{ field }}
+                    {% endfor %}
+                    {% endif %}
+                    {% if post.status == 'staged' %}
+                    <button class="btn btn-outline-info" type="submit" name="post"
+                        value="{{ post.id }}">Schedule</button>
+                    {% elif post.status == 'unscheduled' %}
+                    <button class="btn btn-outline-info" type="submit" name="post" value="{{ post.id }}">Stage to be
+                        Scheduled</button>
+                    {% else %}
+                    {% endif %}
+                </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    No posts here
+    {% endif %}
+
+
+</div>
+{% if  request.get_full_path  == '/scheduled/'%}
+<div align="center">
+    <form method="POST">
+        {% csrf_token %}
+        <button class="btn btn-outline-info" type="submit">Send Reminders For all Scheduled Posts</button>
+    </form>
+</div>
+{% endif %}
+<div align="center">
+    {% if is_paginated %}
+    {% if page_obj.has_previous %}
+    <a class="btn btn-outline-info mb-4" href="?page=1">First</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+    {% endif %}
+    {% for num in page_obj.paginator.page_range %}
+    {% if page_obj.number == num %}
+    <a class="btn btn-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ num }}">{{ num }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.next_page_number }}">Next</a>
+    <a class="btn btn-outline-info mb-4" href="?page={{ page_obj.paginator.num_pages }}">Last</a>
+    {% endif %}
+    {% endif %}
+</div>
+</div>
+
+{% endblock content %} 

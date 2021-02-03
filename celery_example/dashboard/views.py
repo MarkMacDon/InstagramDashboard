@@ -1,6 +1,6 @@
+from django.conf import settings
+from django.http import request
 from celery_example.tasks import send_email_task
-from .send_email import send_email
-from datetime import datetime, timedelta, timezone
 from .image_resize import image_resize
 from PIL import Image
 from .forms import ScheduledDateForm
@@ -14,35 +14,63 @@ from django.contrib import messages
 from django.core.files.base import ContentFile
 from io import BytesIO
 from .models import Post
-import pytz
+from django.utils import timezone
+
 
 def home(request):
     return render(request, 'dashboard/home.html')
 
-def about(request):
-    return render(request, 'dashboard/about.html', {'title':'About'})
 
-#TODO optional: infinite scroll
-class PostListView(ListView):
+def about(request):
+    return render(request, 'dashboard/about.html', {'title': 'About'})
+
+# TODO optional: infinite scroll
+# TODO add link to user profile in user view
+
+class PostListView(LoginRequiredMixin, ListView):
     model = Post
     template_name = 'dashboard/home.html'
     context_object_name = 'posts'
-    ordering = ['-date_added']
-    paginate_by = 9
-    
+    paginate_by = 15
+
+    def get_post_list(self):
+        posts = Post.objects.all()
+        return posts
+
+    def get_queryset(self):
+        user = self.request.user
+        posts = self.get_post_list()
+        
+        if user.is_superuser:
+
+            if self.request.GET.get('status'):
+                posts = posts.filter(status=self.request.GET['status'])
+
+            sort_by = self.request.GET.get('sort')
+            if sort_by == 'date':
+                posts = sorted(posts, key=lambda p: p.date_added, reverse=True)
+
+            if sort_by == 'author':
+                posts = sorted(
+                    posts, key=lambda p: p.author.username, reverse=False)
+        
+        else:
+            posts = posts.filter(status='staged')
+
+        return posts
+
     def get_context_data(self, **kwargs):
         content_length_int = 50
         content_length = ":"+str(content_length_int)
         kwargs['content_length'] = content_length
         kwargs['content_length_int'] = content_length_int
-        print(kwargs)
+        kwargs['status'] = [('', 'All')] + list(Post.POST_STATUSES)
         return super().get_context_data(**kwargs)
 
-    
 
-class UserPostListView(ListView):
+class UserPostListView(LoginRequiredMixin, ListView):
     model = Post
-    template_name = 'dashboard/user_posts.html'
+    template_name = 'dashboard/home.html'
     context_object_name = 'posts'
     paginate_by = 9
 
@@ -55,72 +83,63 @@ class UserPostListView(ListView):
         content_length = ":"+str(content_length_int)
         kwargs['content_length'] = content_length
         kwargs['content_length_int'] = content_length_int
-        print(kwargs)
         return super().get_context_data(**kwargs)
 
-class PostDetailView(DetailView):
+
+class PostDetailView(LoginRequiredMixin, DetailView):
     model = Post
 
-#TODO Make sure  form does not wipe data if permission is not given
-class PostCreateView(LoginRequiredMixin, CreateView):
+
+class PostCreateView(CreateView):
     model = Post
+
     form_class = modelform_factory(Post, fields=['title', 'handles', 'image', 'content', 'hashtags', 'permission'],
-        widgets={'handles': forms.Textarea(attrs={'rows':1, 'cols':15}),
-        'hashtags':forms.Textarea(attrs={'rows':2, 'cols':15})})
-    
+                                   widgets={'handles': forms.Textarea(attrs={'rows': 1, 'cols': 15}),
+                                            'hashtags': forms.Textarea(attrs={'rows': 2, 'cols': 15})})
+
     def get_form_kwargs(self):
         kwargs = super(PostCreateView, self).get_form_kwargs()
-        kwargs['initial'] = {'handles':self.request.user.profile.handle,
-                            'permission':False}
+        if User.is_anonymous:
+            return kwargs
+        else:
+            kwargs['initial'] = {'handles': self.request.user.profile.handle,
+                                 'permission': False}
         return kwargs
-    
+
     def form_valid(self, form):
         if form.instance.permission != True:
             messages.error(self.request, 'No permission given')
-            return redirect('post-create')
+            return self.form_invalid(form)
         else:
             form.instance.author = self.request.user
             messages.success(self.request, 'Post Created')
-            
-            image_copy = Image.open(form.instance.image)
-            image_copy = image_resize(image_copy)
-
-            image_copy.thumbnail((350,350), Image.ANTIALIAS)
-            thumb_io = BytesIO()
-            image_copy.save(thumb_io, image_copy.format, quality=60)
-            form.instance.small_image.save(f'small_{form.instance.image}', ContentFile(thumb_io.getvalue()), save=False)
-            form.instance.save()
-
             return super().form_valid(form)
-    
+
     def post(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)
 
 
-#TODO Make sure  form does not wipe data if permission is not given
 class PostUpdateView(UserPassesTestMixin, LoginRequiredMixin, UpdateView):
     model = Post
     form_class = modelform_factory(Post, fields=['title', 'handles', 'image', 'content', 'hashtags', 'permission'],
-        widgets={'handles': forms.Textarea(attrs={'rows':1, 'cols':15}),
-        'hashtags':forms.Textarea(attrs={'rows':2, 'cols':15})})
-    
-    
+                                   widgets={'handles': forms.Textarea(attrs={'rows': 1, 'cols': 15}),
+                                            'hashtags': forms.Textarea(attrs={'rows': 2, 'cols': 15})})
+
     def get_form_kwargs(self):
         kwargs = super(PostUpdateView, self).get_form_kwargs()
-        kwargs['initial'] = {'handles':self.request.user.profile.handle,
-                             'permission':False}
+        kwargs['initial'] = {'handles': self.request.user.profile.handle,
+                             'permission': False}
         return kwargs
 
     def form_valid(self, form):
         if form.instance.permission != True:
             pk = form.instance.pk
             messages.error(self.request, 'No permission given')
-            return redirect('post-update', pk)
+            return self.form_invalid(form)
         else:
             form.instance.author = self.request.user
-            messages.success(self.request, 'Post Updated')    
+            messages.success(self.request, 'Post Updated')
             return super().form_valid(form)
-
 
     def test_func(self):
         post = self.get_object()
@@ -129,7 +148,7 @@ class PostUpdateView(UserPassesTestMixin, LoginRequiredMixin, UpdateView):
         else:
             return False
 
-#TODO Delete from database
+
 class PostDeleteView(UserPassesTestMixin, LoginRequiredMixin, DeleteView):
     model = Post
     success_url = '/'
@@ -141,8 +160,76 @@ class PostDeleteView(UserPassesTestMixin, LoginRequiredMixin, DeleteView):
         else:
             return False
 
-#TODO Fix sidebar on template
-#TODO Make timezone aware of user location
+
+# TODO Fix sidebar on template
+# TODO Make timezone aware of user location
+# TODO Make image resize accept all file formats for IG
+# TODO Schedule Posts View template update
+# TODO Complete Posts View template update
+# TODO fix nav bar when logged out. Login register buttons
+
+
+class PostStageListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
+    model = Post
+    template_name = 'dashboard/schedule_posts.html'
+    context_object_name = 'posts'
+    paginate_by = 9
+
+    def get_queryset(self):
+        return Post.objects.filter(status='unscheduled').order_by('-date_added')
+
+    def test_func(self):
+        if self.request.user.is_superuser:
+            return True
+        else:
+            return False
+
+    def post(self, request, *args, **kwargs):
+        post_id = request.POST['post']
+        post = Post.objects.filter(id=post_id).first()
+        post.scheduled_date = timezone.now()
+        post.status = 'staged'
+        post.save()
+        messages.success(
+            request, f'Your post has been selected for scheduling.')
+        return redirect('post-stage')
+
+
+class PostScheduledListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
+    model = Post
+    template_name = 'dashboard/schedule_posts.html'
+    context_object_name = 'posts'
+    paginate_by = 9
+
+    def get_queryset(self):
+        return Post.objects.filter(status='scheduled').order_by('-scheduled_date')
+
+    def test_func(self):
+        if self.request.user.is_superuser:
+            return True
+        else:
+            return False
+
+    def get_context_data(self, **kwargs):
+        kwargs['today'] = timezone.localtime(timezone.now())
+        return super().get_context_data(**kwargs)
+
+    def post(self, request, *args, **kwargs):
+        posts = Post.objects.filter(status='scheduled')
+        for post in posts:
+            # Update status
+            post.status = 'complete'
+            post.save()
+            # Send Email
+            media_root = settings.MEDIA_ROOT[:settings.MEDIA_ROOT.rfind('\\')]
+            image_location = f'{media_root}{post.image.url}'
+            send_date = timezone.localtime(post.scheduled_date)
+            send_email_task.apply_async(
+                (post.title, post.handles, post.content, post.hashtags, image_location), eta=send_date)
+        messages.success(request, f'Your posts have been scheduled.')
+        return redirect('post-scheduled')
+
+
 class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
     model = Post
     template_name = 'dashboard/schedule_posts.html'
@@ -150,19 +237,19 @@ class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
     paginate_by = 9
 
     def get_queryset(self):
-        return Post.objects.all().order_by('-scheduled_date')
-    
+        return Post.objects.filter(status='staged').order_by('-scheduled_date')
+
     def test_func(self):
         if self.request.user.is_superuser:
             return True
         else:
             return False
-    
+
     def get_context_data(self, **kwargs):
         form = ScheduledDateForm()
         kwargs['form'] = form
         return super().get_context_data(**kwargs)
-    
+
     def post(self, request, *args, **kwargs):
         post_id = request.POST['post']
         post = Post.objects.filter(id=post_id).first()
@@ -170,16 +257,14 @@ class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
         form = self.form
         post = self.form.instance
 
+        # TODO move send email to schedule view
         if form.is_valid():
+            post.status = 'scheduled'
             form.save()
-            aware_time = pytz.utc.localize(datetime.now())
-            delay = form.instance.scheduled_date - aware_time
-            send_email_task.apply_async((post.title, post.handles, post.content), countdown=10)
             messages.success(
                 request, f'Your post has been scheduled.')
             return redirect('post-schedule')
         else:
-            kwargs['form']=form
-            messages.warning(request,'Selected date must not be in the past')
+            kwargs['form'] = form
+            messages.warning(request, 'Selected date must not be in the past')
             return redirect('post-schedule')
-        

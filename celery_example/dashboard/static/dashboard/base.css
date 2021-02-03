@@ -1,0 +1,14 @@
+a{
+    color: rgb(255, 255, 255);
+}
+a.base{
+    color:#000
+}
+a.nav-item{
+    color: rgb(255, 255, 255);
+    margin: 0;
+    position: relative;
+    top: 30%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
