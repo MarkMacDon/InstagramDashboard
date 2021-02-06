@@ -4,21 +4,6 @@ from celery import shared_task
 from django.core.mail import EmailMessage
 
 
-@app.task
-def add(x, y):
-    return x + y
-
-
-@app.task
-def mul(x, y):
-    return x * y
-
-
-@app.task
-def xsum(numbers):
-    return sum(numbers)
-
-
 @shared_task
 def send_email_task(title, handles, content, hashtags, image):
     body = f'''
@@ -36,3 +21,7 @@ def send_email_task(title, handles, content, hashtags, image):
     email.send()
 
     return None
+
+@shared_task
+def revoke_task(id):
+    app.control.revoke(id)

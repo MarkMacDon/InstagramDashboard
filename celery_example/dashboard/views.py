@@ -1,3 +1,4 @@
+from celery_example.tasks import revoke_task
 from django.conf import settings
 from django.http import request
 from celery_example.tasks import send_email_task
@@ -15,6 +16,7 @@ from django.core.files.base import ContentFile
 from io import BytesIO
 from .models import Post
 from django.utils import timezone
+from celery_example.celery import app
 
 
 def home(request):
@@ -26,6 +28,7 @@ def about(request):
 
 # TODO optional: infinite scroll
 # TODO add link to user profile in user view
+
 
 class PostListView(LoginRequiredMixin, ListView):
     model = Post
@@ -40,7 +43,7 @@ class PostListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         user = self.request.user
         posts = self.get_post_list()
-        
+
         if user.is_superuser:
 
             if self.request.GET.get('status'):
@@ -53,9 +56,9 @@ class PostListView(LoginRequiredMixin, ListView):
             if sort_by == 'author':
                 posts = sorted(
                     posts, key=lambda p: p.author.username, reverse=False)
-        
+
         else:
-            posts = posts.filter(status='staged')
+            posts = posts.filter(status='complete')
 
         return posts
 
@@ -168,6 +171,9 @@ class PostDeleteView(UserPassesTestMixin, LoginRequiredMixin, DeleteView):
 # TODO Complete Posts View template update
 # TODO fix nav bar when logged out. Login register buttons
 
+# TODO update to schedule view
+# TODO add multi select
+# TODO add ability to reorder
 
 class PostStageListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
     model = Post
@@ -195,40 +201,7 @@ class PostStageListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
         return redirect('post-stage')
 
 
-class PostScheduledListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
-    model = Post
-    template_name = 'dashboard/schedule_posts.html'
-    context_object_name = 'posts'
-    paginate_by = 9
-
-    def get_queryset(self):
-        return Post.objects.filter(status='scheduled').order_by('-scheduled_date')
-
-    def test_func(self):
-        if self.request.user.is_superuser:
-            return True
-        else:
-            return False
-
-    def get_context_data(self, **kwargs):
-        kwargs['today'] = timezone.localtime(timezone.now())
-        return super().get_context_data(**kwargs)
-
-    def post(self, request, *args, **kwargs):
-        posts = Post.objects.filter(status='scheduled')
-        for post in posts:
-            # Update status
-            post.status = 'complete'
-            post.save()
-            # Send Email
-            media_root = settings.MEDIA_ROOT[:settings.MEDIA_ROOT.rfind('\\')]
-            image_location = f'{media_root}{post.image.url}'
-            send_date = timezone.localtime(post.scheduled_date)
-            send_email_task.apply_async(
-                (post.title, post.handles, post.content, post.hashtags, image_location), eta=send_date)
-        messages.success(request, f'Your posts have been scheduled.')
-        return redirect('post-scheduled')
-
+# TODO Bulk schedule or individual schedule? Currently bulk
 
 class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
     model = Post
@@ -261,10 +234,71 @@ class PostScheduleListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
         if form.is_valid():
             post.status = 'scheduled'
             form.save()
-            messages.success(
-                request, f'Your post has been scheduled.')
+            # Send Email
+            media_root = settings.MEDIA_ROOT[:settings.MEDIA_ROOT.rfind('\\')]
+            image_location = f'{media_root}{post.image.url}'
+            send_date = timezone.localtime(post.scheduled_date)
+            task = send_email_task.apply_async(
+                (post.title, post.handles, post.content, post.hashtags, image_location), eta=send_date)
+            post.taskId = task.id
+            post.save()
+            print(f'Task ID: {post.taskId}')
+            messages.success(request, f'Your post has been scheduled.')
+
             return redirect('post-schedule')
         else:
             kwargs['form'] = form
             messages.warning(request, 'Selected date must not be in the past')
             return redirect('post-schedule')
+
+
+# TODO Add remove from scheduled
+class PostScheduledListView(UserPassesTestMixin, LoginRequiredMixin, ListView):
+    model = Post
+    template_name = 'dashboard/scheduled_posts.html'
+    context_object_name = 'posts'
+    paginate_by = 9
+
+    def get_queryset(self):
+        posts = Post.objects.filter(status__in=('scheduled', 'complete'))
+        for post in posts:
+            if timezone.localtime(post.scheduled_date) < timezone.localtime(timezone.now()):
+                post.status = 'complete'
+                post.save()
+        return Post.objects.filter(status__in=('scheduled', 'complete')).order_by('-scheduled_date')
+
+    def test_func(self):
+        if self.request.user.is_superuser:
+            return True
+        else:
+            return False
+
+    def get_context_data(self, **kwargs):
+        kwargs['today'] = timezone.localtime(timezone.now())
+        return super().get_context_data(**kwargs)
+
+    def post(self, request, *args, **kwargs):
+        post_taskId = request.POST['revoke']
+        revoke_task(post_taskId)
+
+        post = Post.objects.filter(taskId=post_taskId).first()
+        post.status = 'staged'
+        post.save()
+        messages.success(
+            request, f'Your post has been removed from scheduled and your reminder has been cancelled.')
+        return redirect('post-scheduled')
+
+
+# posts = Post.objects.filter(status='scheduled')
+#         for post in posts:
+#             # Update status
+#             post.status = 'complete'
+#             post.save()
+#             # Send Email
+#             media_root = settings.MEDIA_ROOT[:settings.MEDIA_ROOT.rfind('\\')]
+#             image_location = f'{media_root}{post.image.url}'
+#             send_date = timezone.localtime(post.scheduled_date)
+#             send_email_task.apply_async(
+#                 (post.title, post.handles, post.content, post.hashtags, image_location), eta=send_date)
+#         messages.success(request, f'Your posts have been scheduled.')
+#         return redirect('post-scheduled')

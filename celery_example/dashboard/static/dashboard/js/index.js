@@ -12,3 +12,7 @@ ReactDOM.render(
   secondelement,
   document.getElementById('react')
 );
+ReactDOM.render(
+  element,
+  document.getElementById('react1')
+);

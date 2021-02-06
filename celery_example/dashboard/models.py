@@ -73,6 +73,7 @@ class Post(models.Model):
         default=False, verbose_name='By checking this box you are giving us permission to use this content')
     status = models.CharField(
         max_length=20, choices=POST_STATUSES, default=POST_STATUS_UNSCHEDULED)
+    taskId = models.CharField(max_length=40, default='')
 
     def __str__(self):
         return self.title

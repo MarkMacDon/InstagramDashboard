@@ -1,6 +1,5 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
-{% load render_bundle from webpack_loader %}
 {% block content %}
 
 <!DOCTYPE html>
@@ -154,6 +153,5 @@
   </div>
 
 
-  <div id="react"> {% render_bundle 'main' %}
-  </div>
+
   {% endblock content %}
