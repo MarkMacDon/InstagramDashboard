@@ -1,9 +1,6 @@
 from celery_example.tasks import revoke_task
 from django.conf import settings
-from django.http import request
 from celery_example.tasks import send_email_task
-from .image_resize import image_resize
-from PIL import Image
 from .forms import ScheduledDateForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django import forms
@@ -12,8 +9,6 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.models import User
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
-from django.core.files.base import ContentFile
-from io import BytesIO
 from .models import Post
 from django.utils import timezone
 from celery_example.celery import app

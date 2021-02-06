@@ -31,8 +31,7 @@ INSTALLED_APPS = [
     'dashboard.apps.DashboardConfig',
     'users.apps.UsersConfig',
     'crispy_forms',
-    'django_cleanup.apps.CleanupConfig',
-    'webpack_loader'
+    'django_cleanup.apps.CleanupConfig'
 ]
 
 WEBPACK_LOADER = {
