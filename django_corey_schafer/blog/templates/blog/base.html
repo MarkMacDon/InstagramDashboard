@@ -11,13 +11,24 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
   <!-- Bootstrap 4 -->
-  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
-  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css"
+    integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous">
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"
+    integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous">
+  </script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"
+    integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous">
+  </script>
   <!-- Tempus Dominus Bootstrap 4 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.1.2/css/tempusdominus-bootstrap-4.min.css" integrity="sha256-XPTBwC3SBoWHSmKasAk01c08M6sIA5gF5+sRxqak2Qs=" crossorigin="anonymous" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.1.2/js/tempusdominus-bootstrap-4.min.js" integrity="sha256-z0oKYg6xiLq3yJGsp/LsY9XykbweQlHl42jHv2XTBz4=" crossorigin="anonymous"></script>
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.1.2/css/tempusdominus-bootstrap-4.min.css"
+    integrity="sha256-XPTBwC3SBoWHSmKasAk01c08M6sIA5gF5+sRxqak2Qs=" crossorigin="anonymous" />
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/tempusdominus-bootstrap-4/5.1.2/js/tempusdominus-bootstrap-4.min.js"
+    integrity="sha256-z0oKYg6xiLq3yJGsp/LsY9XykbweQlHl42jHv2XTBz4=" crossorigin="anonymous"></script>
 
   <link rel="stylesheet" type="text/css" href="{% static 'blog/main.css' %}">
   {% if title %}
@@ -69,23 +80,23 @@
         </div>
         {% endfor %}
         {% endif %}
-        </div>
-        {% block content %}{% endblock %}
       </div>
+      {% block content %}{% endblock %}
+    </div>
 
-      <div class="col-md-4">
-        <div class="content-section">
-          <h3>Our Sidebar</h3>
-          <p class='text-muted'>You can put any information here you'd like.
-            <ul class="list-group">
-              <li class="list-group-item list-group-item-light">Latest Posts</li>
-              <li class="list-group-item list-group-item-light">Announcements</li>
-              <li class="list-group-item list-group-item-light">Calendars</li>
-              <li class="list-group-item list-group-item-light">etc</li>
-            </ul>
-          </p>
-        </div>
+    {% comment %} <div class="col-md-4">
+      <div class="content-section">
+        <h3>Our Sidebar</h3>
+        <p class='text-muted'>You can put any information here you'd like.
+          <ul class="list-group">
+            <li class="list-group-item list-group-item-light">Latest Posts</li>
+            <li class="list-group-item list-group-item-light">Announcements</li>
+            <li class="list-group-item list-group-item-light">Calendars</li>
+            <li class="list-group-item list-group-item-light">etc</li>
+          </ul>
+        </p>
       </div>
+    </div> {% endcomment %}
     </div>
   </main>
   <!-- Optional JavaScript -->
@@ -103,12 +114,17 @@
 
 </html>
 <script>
-  $(document).ready(function() {
-      $('.datepicker').datepicker(
-        {
-          minDate : 0,
-          beforeShowDay : $.datepicker.noWeekends
-        }
-      );
+  $(document).ready(function () {
+    $('.datepicker').datepicker({
+      minDate: 0,
+      beforeShowDay: $.datepicker
+    });
+  });
+</script>
+<script>
+  $(function () {
+    $("#datetimepicker1").datetimepicker({
+      format: 'DD/MM/YYYY HH:mm',
+    });
   });
 </script>
